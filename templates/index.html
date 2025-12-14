@@ -2,215 +2,236 @@
 <html lang="uk">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
 <title>Графік відключень світла</title>
+
 <style>
-body { 
-  background:#0b1e26; 
-  color:#e5f2f7; 
-  font-family:Arial, sans-serif; 
-  padding:20px 
+:root {
+  --bg: #0b1e26;
+  --panel: #102b36;
+  --hour: #12323f;
+  --off: #4b5d66;
+  --text: #e5f2f7;
+  --muted: #9fb9c5;
+  --accent: #1e90ff;
 }
 
-h2 { margin-bottom:10px; }
-
-/* Стиль для випадаючого списку */
-select#queue { 
-  padding:10px 15px; 
-  font-size:16px; 
-  border-radius:8px; 
-  border:none; 
-  background:#12323f; 
-  color:#e5f2f7; 
-  cursor:pointer;
-  box-shadow: 0 0 5px rgba(0,0,0,0.5);
-  transition: all 0.2s ease-in-out;
-}
-select#queue:hover, select#queue:focus {
-  background:#1a3a4d;
-  outline:none;
-}
-select#queue option {
-  background:#0b1e26; 
-  color:#e5f2f7; 
+* {
+  box-sizing: border-box;
 }
 
-/* Заголовки графіків */
-h3 {
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
   font-family: Arial, sans-serif;
-  font-size: 20px;
-  font-weight: bold;
-  color: #9fb9c5; /* під стиль сайту */
-  margin-top: 30px;
-  margin-bottom: 10px; /* відступ після заголовку */
 }
 
-/* Графік */
-.timeline { display:grid; grid-template-columns:repeat(24,1fr); gap:2px; margin-top:10px }
-.hour { height:40px; background:#12323f; border-radius:4px; position:relative }
-.hour.off { background:#4b5d66 }
+.container {
+  max-width: 1000px;
+  margin: auto;
+  padding: 16px;
+}
+
+h2 {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+h3 {
+  color: var(--muted);
+  margin: 30px 0 12px;
+  font-size: 20px;
+}
+
+/* ===== Select ===== */
+.select-wrapper {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 20px;
+}
+
+select {
+  background: var(--panel);
+  color: var(--text);
+  border: 1px solid var(--hour);
+  border-radius: 10px;
+  padding: 12px 16px;
+  font-size: 16px;
+  width: 100%;
+  max-width: 260px;
+  appearance: none;
+  text-align: center;
+}
+
+/* ===== Timer ===== */
+.timer-box {
+  max-width: 320px;
+  margin: 20px auto;
+  padding: 14px;
+  background: var(--panel);
+  border-radius: 14px;
+  text-align: center;
+}
+
+.timer-title {
+  font-size: 14px;
+  color: var(--muted);
+  margin-bottom: 6px;
+}
+
+.timer {
+  font-size: 28px;
+  font-weight: bold;
+}
+
+/* ===== Timeline ===== */
+.timeline-wrapper {
+  overflow-x: auto;
+}
+
+.timeline {
+  display: grid;
+  grid-template-columns: repeat(24, minmax(36px, 1fr));
+  gap: 3px;
+  min-width: 720px;
+}
+
+.hour {
+  height: 38px;
+  background: var(--hour);
+  border-radius: 4px;
+  position: relative;
+}
+
+.hour.off {
+  background: var(--off);
+}
+
 .hour::after {
   content: attr(data-hour);
-  position:absolute; top:-22px; left:50%;
-  transform:translateX(-50%);
-  font-size:12px; color:#9fb9c5
-}
-.now {
-  position:absolute; bottom:6px; left:50%;
-  transform:translateX(-50%);
-  width:8px; height:8px; background:#4cff4c; border-radius:50%
+  position: absolute;
+  top: -18px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 10px;
+  color: var(--muted);
 }
 
-/* Таймер */
-#next_event { 
-  margin:20px auto; /* по центру */
-  font-size:20px; 
-  font-weight:bold; 
-  text-align:center; 
-  padding:10px 15px; /* менше по ширині */
-  background:#12323f; 
-  border-radius:10px; 
-  display:flex; 
-  justify-content:center; 
-  gap:10px;
-  flex-direction: column;
-  align-items: center;
-  color: #9fb9c5; 
-  max-width:300px; /* обмеження ширини */
+.now {
+  position: absolute;
+  bottom: 5px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 7px;
+  height: 7px;
+  background: var(--accent);
+  border-radius: 50%;
 }
-#next_event span.numbers { display:flex; gap:10px; margin-top:5px; justify-content:center; }
-#next_event span.numbers .number { font-size:28px; color:#4fb8d6; } 
-#next_event span.numbers .label { font-size:12px; color:#9fb9c5; }
+
+/* ===== Mobile ===== */
+@media (max-width: 480px) {
+  h2 {
+    font-size: 20px;
+  }
+
+  h3 {
+    font-size: 18px;
+  }
+
+  .timer {
+    font-size: 24px;
+  }
+}
 </style>
 </head>
+
 <body>
+
+<div class="container">
 
 <h2>Олександрійський район — графік світла</h2>
 
+<div class="select-wrapper">
 <select id="queue">
-<option value="">Оберіть чергу</option>
-<option>1.1</option><option>1.2</option>
-<option>2.1</option><option>2.2</option>
-<option>3.1</option><option>3.2</option>
-<option>4.1</option><option>4.2</option>
-<option>5.1</option><option>5.2</option>
-<option>6.1</option><option>6.2</option>
+  <option>1.1</option><option>1.2</option>
+  <option>2.1</option><option>2.2</option>
+  <option>3.1</option><option>3.2</option>
+  <option>4.1</option><option>4.2</option>
+  <option>5.1</option><option>5.2</option>
+  <option>6.1</option><option>6.2</option>
 </select>
+</div>
 
-<div id="next_event"></div>
+<div class="timer-box">
+  <div class="timer-title" id="timerTitle">До вимкнення світла</div>
+  <div class="timer" id="timer">--:--:--</div>
+</div>
 
 <h3>Сьогодні</h3>
-<br>
-<div class="timeline" id="timeline_today"></div>
+<div class="timeline-wrapper">
+  <div class="timeline" id="timeline_today"></div>
+</div>
 
-<h3 id="tomorrow_title" style="display:none">Завтра</h3>
-<br>
-<div class="timeline" id="timeline_tomorrow"></div>
+<h3 id="tomorrowTitle" style="display:none">Завтра</h3>
+<div class="timeline-wrapper">
+  <div class="timeline" id="timeline_tomorrow"></div>
+</div>
+
+</div>
 
 <script>
-const queue = document.getElementById("queue");
-const timeline_today = document.getElementById("timeline_today");
-const timeline_tomorrow = document.getElementById("timeline_tomorrow");
-const next_event_div = document.getElementById("next_event");
+const queueSelect = document.getElementById("queue");
+const timer = document.getElementById("timer");
+const timerTitle = document.getElementById("timerTitle");
+const todayTimeline = document.getElementById("timeline_today");
+const tomorrowTimeline = document.getElementById("timeline_tomorrow");
+const tomorrowTitle = document.getElementById("tomorrowTitle");
 
-function draw(timelineDiv, ranges=[]) {
-  timelineDiv.innerHTML = "";
+queueSelect.value = localStorage.getItem("queue") || "1.1";
+
+function drawTimeline(el, ranges=[]) {
+  el.innerHTML = "";
   const now = new Date().getHours();
-  for (let h=0; h<24; h++) {
+
+  for (let h = 0; h < 24; h++) {
     const d = document.createElement("div");
     d.className = "hour";
-    d.dataset.hour = String(h).padStart(2,"0")+":00";
-    ranges.forEach(([s,e]) => { if (h>=s && h<e) d.classList.add("off"); });
-    if (timelineDiv===timeline_today && h===now) {
+    d.dataset.hour = String(h).padStart(2,"0");
+
+    ranges.forEach(([s,e]) => {
+      if (h >= s && h < e) d.classList.add("off");
+    });
+
+    if (h === now) {
       const dot = document.createElement("div");
-      dot.className="now";
+      dot.className = "now";
       d.appendChild(dot);
     }
-    timelineDiv.appendChild(d);
+
+    el.appendChild(d);
   }
 }
 
-let currentRanges = [];
+async function load(queue) {
+  localStorage.setItem("queue", queue);
 
-function updateNextEvent(ranges=[]) {
-  currentRanges = ranges;
-}
+  const today = await fetch(`/api/schedule?queue=${queue}&date=today`).then(r=>r.json());
+  drawTimeline(todayTimeline, today.ranges || []);
 
-function calculateTimer() {
-  const now = new Date();
-  const currentHour = now.getHours();
-  let nextChange = null;
-  let isOffNow = false;
-
-  for (const [start, end] of currentRanges) {
-    if (currentHour >= start && currentHour < end) {
-      nextChange = new Date();
-      nextChange.setHours(end, 0, 0, 0);
-      isOffNow = true;
-      break;
-    } else if (currentHour < start) {
-      nextChange = new Date();
-      nextChange.setHours(start, 0, 0, 0);
-      isOffNow = false;
-      break;
-    }
-  }
-
-  if (!nextChange) {
-    next_event_div.innerHTML = "<span>На сьогодні більше відключень немає</span>";
-    return;
-  }
-
-  let diff = Math.floor((nextChange - now) / 1000);
-  const h = Math.floor(diff / 3600);
-  diff %= 3600;
-  const m = Math.floor(diff / 60);
-  const s = diff % 60;
-
-  const labelText = isOffNow ? "До увімкнення світла" : "До вимкнення світла";
-
-  next_event_div.innerHTML = `
-    <span>${labelText}</span>
-    <span class="numbers">
-      <span><div class="number">${String(h).padStart(2,'0')}</div><div class="label">год</div></span>
-      <span><div class="number">${String(m).padStart(2,'0')}</div><div class="label">хв</div></span>
-      <span><div class="number">${String(s).padStart(2,'0')}</div><div class="label">сек</div></span>
-    </span>
-  `;
-}
-
-async function update() {
-  if (!queue.value) return;
-  try {
-    localStorage.setItem("lastQueue", queue.value);
-
-    let r = await fetch(`/api/schedule?queue=${queue.value}&date=today`);
-    let j = await r.json();
-    draw(timeline_today, j.ranges || []);
-    updateNextEvent(j.ranges || []);
-
-    r = await fetch(`/api/schedule?queue=${queue.value}&date=tomorrow`);
-    j = await r.json();
-    if (j.ranges && j.ranges.length>0) {
-      draw(timeline_tomorrow, j.ranges);
-      document.getElementById("tomorrow_title").style.display = "block";
-    } else {
-      timeline_tomorrow.innerHTML = "";
-      document.getElementById("tomorrow_title").style.display = "none";
-    }
-
-  } catch(e) {
-    console.error(e);
+  const tomorrow = await fetch(`/api/schedule?queue=${queue}&date=tomorrow`).then(r=>r.json());
+  if (tomorrow.ranges?.length) {
+    tomorrowTitle.style.display = "block";
+    drawTimeline(tomorrowTimeline, tomorrow.ranges);
+  } else {
+    tomorrowTitle.style.display = "none";
+    tomorrowTimeline.innerHTML = "";
   }
 }
 
-const lastQueue = localStorage.getItem("lastQueue") || "1.1";
-queue.value = lastQueue;
-
-update();
-setInterval(update, 60000);
-setInterval(calculateTimer, 1000);
-queue.onchange = update;
-
+queueSelect.onchange = () => load(queueSelect.value);
+load(queueSelect.value);
 </script>
 
 </body>
