@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<title>Графік відключень світла</title>
+<style>
+body { 
+  background:#0b1e26; 
+  color:#e5f2f7; 
+  font-family:Arial, sans-serif; 
+  padding:20px 
+}
+
+h2 { margin-bottom:10px; }
+
+/* Стиль для випадаючого списку */
+select#queue { 
+  padding:10px 15px; 
+  font-size:16px; 
+  border-radius:8px; 
+  border:none; 
+  background:#12323f; 
+  color:#e5f2f7; 
+  cursor:pointer;
+  box-shadow: 0 0 5px rgba(0,0,0,0.5);
+  transition: all 0.2s ease-in-out;
+}
+select#queue:hover, select#queue:focus {
+  background:#1a3a4d;
+  outline:none;
+}
+select#queue option {
+  background:#0b1e26; 
+  color:#e5f2f7; 
+}
+
+/* Заголовки графіків */
+h3 {
+  font-family: Arial, sans-serif;
+  font-size: 20px;
+  font-weight: bold;
+  color: #9fb9c5; /* під стиль сайту */
+  margin-top: 30px;
+  margin-bottom: 10px; /* відступ після заголовку */
+}
+
+/* Графік */
+.timeline { display:grid; grid-template-columns:repeat(24,1fr); gap:2px; margin-top:10px }
+.hour { height:40px; background:#12323f; border-radius:4px; position:relative }
+.hour.off { background:#4b5d66 }
+.hour::after {
+  content: attr(data-hour);
+  position:absolute; top:-22px; left:50%;
+  transform:translateX(-50%);
+  font-size:12px; color:#9fb9c5
+}
+.now {
+  position:absolute; bottom:6px; left:50%;
+  transform:translateX(-50%);
+  width:8px; height:8px; background:#4cff4c; border-radius:50%
+}
+
+/* Таймер */
+#next_event { 
+  margin:20px auto; /* по центру */
+  font-size:20px; 
+  font-weight:bold; 
+  text-align:center; 
+  padding:10px 15px; /* менше по ширині */
+  background:#12323f; 
+  border-radius:10px; 
+  display:flex; 
+  justify-content:center; 
+  gap:10px;
+  flex-direction: column;
+  align-items: center;
+  color: #9fb9c5; 
+  max-width:300px; /* обмеження ширини */
+}
+#next_event span.numbers { display:flex; gap:10px; margin-top:5px; justify-content:center; }
+#next_event span.numbers .number { font-size:28px; color:#4fb8d6; } 
+#next_event span.numbers .label { font-size:12px; color:#9fb9c5; }
+</style>
+</head>
+<body>
+
+<h2>Олександрійський район — графік світла</h2>
+
+<select id="queue">
+<option value="">Оберіть чергу</option>
+<option>1.1</option><option>1.2</option>
+<option>2.1</option><option>2.2</option>
+<option>3.1</option><option>3.2</option>
+<option>4.1</option><option>4.2</option>
+<option>5.1</option><option>5.2</option>
+<option>6.1</option><option>6.2</option>
+</select>
+
+<div id="next_event"></div>
+
+<h3>Сьогодні</h3>
+<br>
+<div class="timeline" id="timeline_today"></div>
+
+<h3 id="tomorrow_title" style="display:none">Завтра</h3>
+<br>
+<div class="timeline" id="timeline_tomorrow"></div>
+
+<script>
+const queue = document.getElementById("queue");
+const timeline_today = document.getElementById("timeline_today");
+const timeline_tomorrow = document.getElementById("timeline_tomorrow");
+const next_event_div = document.getElementById("next_event");
+
+function draw(timelineDiv, ranges=[]) {
+  timelineDiv.innerHTML = "";
+  const now = new Date().getHours();
+  for (let h=0; h<24; h++) {
+    const d = document.createElement("div");
+    d.className = "hour";
+    d.dataset.hour = String(h).padStart(2,"0")+":00";
+    ranges.forEach(([s,e]) => { if (h>=s && h<e) d.classList.add("off"); });
+    if (timelineDiv===timeline_today && h===now) {
+      const dot = document.createElement("div");
+      dot.className="now";
+      d.appendChild(dot);
+    }
+    timelineDiv.appendChild(d);
+  }
+}
+
+let currentRanges = [];
+
+function updateNextEvent(ranges=[]) {
+  currentRanges = ranges;
+}
+
+function calculateTimer() {
+  const now = new Date();
+  const currentHour = now.getHours();
+  let nextChange = null;
+  let isOffNow = false;
+
+  for (const [start, end] of currentRanges) {
+    if (currentHour >= start && currentHour < end) {
+      nextChange = new Date();
+      nextChange.setHours(end, 0, 0, 0);
+      isOffNow = true;
+      break;
+    } else if (currentHour < start) {
+      nextChange = new Date();
+      nextChange.setHours(start, 0, 0, 0);
+      isOffNow = false;
+      break;
+    }
+  }
+
+  if (!nextChange) {
+    next_event_div.innerHTML = "<span>На сьогодні більше відключень немає</span>";
+    return;
+  }
+
+  let diff = Math.floor((nextChange - now) / 1000);
+  const h = Math.floor(diff / 3600);
+  diff %= 3600;
+  const m = Math.floor(diff / 60);
+  const s = diff % 60;
+
+  const labelText = isOffNow ? "До увімкнення світла" : "До вимкнення світла";
+
+  next_event_div.innerHTML = `
+    <span>${labelText}</span>
+    <span class="numbers">
+      <span><div class="number">${String(h).padStart(2,'0')}</div><div class="label">год</div></span>
+      <span><div class="number">${String(m).padStart(2,'0')}</div><div class="label">хв</div></span>
+      <span><div class="number">${String(s).padStart(2,'0')}</div><div class="label">сек</div></span>
+    </span>
+  `;
+}
+
+async function update() {
+  if (!queue.value) return;
+  try {
+    localStorage.setItem("lastQueue", queue.value);
+
+    let r = await fetch(`/api/schedule?queue=${queue.value}&date=today`);
+    let j = await r.json();
+    draw(timeline_today, j.ranges || []);
+    updateNextEvent(j.ranges || []);
+
+    r = await fetch(`/api/schedule?queue=${queue.value}&date=tomorrow`);
+    j = await r.json();
+    if (j.ranges && j.ranges.length>0) {
+      draw(timeline_tomorrow, j.ranges);
+      document.getElementById("tomorrow_title").style.display = "block";
+    } else {
+      timeline_tomorrow.innerHTML = "";
+      document.getElementById("tomorrow_title").style.display = "none";
+    }
+
+  } catch(e) {
+    console.error(e);
+  }
+}
+
+const lastQueue = localStorage.getItem("lastQueue") || "1.1";
+queue.value = lastQueue;
+
+update();
+setInterval(update, 60000);
+setInterval(calculateTimer, 1000);
+queue.onchange = update;
+
+</script>
+
+</body>
+</html>
