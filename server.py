@@ -19,9 +19,10 @@ CACHE_TIME = 120  # сек
 
 client = TelegramClient("user_session", API_ID, API_HASH)
 
-# --- асинхронне підключення до Telegram ---
 async def start_client():
-    await client.start(password=os.getenv("TELEGRAM_PASSWORD"))
+    if not client.is_connected():
+        await client.connect()
+
 
 @app.before_serving
 async def startup():
@@ -104,3 +105,4 @@ async def schedule():
 # --- запуск ---
 if __name__ == "__main__":
     app.run(port=5000, debug=True)
+
