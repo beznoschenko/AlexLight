@@ -211,7 +211,7 @@ function timer(){
   const ss=String(d%60).padStart(2,"0");
 
   next_event.innerHTML=`
-    <div>${off?"До <b style="color:#4FBF9A">увімкнення</b> світла":"До <b style="color:#C76A6A">вимкнення</b> світла"}</div>
+    <div>${off?"До <b style=\"color:#4FBF9A\">увімкнення</b> світла":"До <b style=\"color:#C76A6A\">вимкнення</b> світла"}</div>
     <div class="numbers">
       <div><div class="number">${hh}</div><div class="label">год</div></div>
       <div><div class="number">${mm}</div><div class="label">хв</div></div>
@@ -245,6 +245,7 @@ queue.onchange=()=>{localStorage.setItem("lastQueue",queue.value);update();}
 
 </body>
 </html>
+
 
 
 
