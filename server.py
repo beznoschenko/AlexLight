@@ -6,6 +6,7 @@ import os
 import re
 import time
 from datetime import datetime, timedelta
+import asyncio
 
 # ---------- ENV ----------
 load_dotenv()
@@ -19,28 +20,40 @@ app = Quart(__name__)
 
 # ---------- CACHE ----------
 CACHE = {}
-CACHE_TIME = 120  # секунд
+CACHE_TIME = 120  # сек
+
+# ---------- TELETHON ----------
+client = TelegramClient("user_session", API_ID, API_HASH)
 
 
-# ---------- TELEGRAM ----------
+@app.before_serving
+async def startup():
+    if not client.is_connected():
+        await client.connect()
+
+
+@app.after_serving
+async def shutdown():
+    if client.is_connected():
+        await client.disconnect()
+
+
 async def get_messages(limit=50):
-    """
-    Безпечне отримання повідомлень.
-    Клієнт підключається і закривається автоматично.
-    """
-    async with TelegramClient("user_session", API_ID, API_HASH) as client:
-        return await client(
-            GetHistoryRequest(
-                peer=CHANNEL,
-                limit=limit,
-                offset_date=None,
-                offset_id=0,
-                max_id=0,
-                min_id=0,
-                add_offset=0,
-                hash=0,
-            )
+    if not client.is_connected():
+        await client.connect()
+
+    return await client(
+        GetHistoryRequest(
+            peer=CHANNEL,
+            limit=limit,
+            offset_date=None,
+            offset_id=0,
+            max_id=0,
+            min_id=0,
+            add_offset=0,
+            hash=0,
         )
+    )
 
 
 # ---------- PARSER ----------
@@ -67,10 +80,16 @@ async def index_page():
     return await render_template("index.html")
 
 
+@app.route("/health")
+async def health():
+    """Ендпоінт БЕЗ Telethon — ідеальний для GitHub Actions"""
+    return jsonify({"status": "ok"})
+
+
 @app.route("/api/schedule")
 async def schedule():
     queue = request.args.get("queue")
-    date_param = request.args.get("date")  # today | tomorrow
+    date_param = request.args.get("date")
 
     if not queue:
         return jsonify({"ranges": []})
@@ -85,11 +104,9 @@ async def schedule():
     cache_key = f"{queue}_{target_str}"
     now = time.time()
 
-    # ---- CACHE ----
     if cache_key in CACHE and now - CACHE[cache_key]["time"] < CACHE_TIME:
         return jsonify(CACHE[cache_key]["data"])
 
-    # ---- TELEGRAM ----
     try:
         messages = await get_messages()
     except Exception as e:
