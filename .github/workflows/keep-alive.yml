@@ -3,12 +3,12 @@ name: Keep Railway Alive
 on:
   schedule:
     - cron: "*/10 * * * *"   # кожні 10 хвилин
-  workflow_dispatch:        # можна запустити вручну
+  workflow_dispatch:
 
 jobs:
   ping:
     runs-on: ubuntu-latest
     steps:
-      - name: Ping site
+      - name: Ping health endpoint
         run: |
-          curl -I https://alexlight-production.up.railway.app || echo "Ping failed"
+          curl -fsS https://alexlight-production.up.railway.app/health || echo "Ping failed"
