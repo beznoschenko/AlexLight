@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" href="/static/icon.ico" type="image/x-icon">
+<title>Графік відключень світла</title>
+
+<style>
+:root {
+  --bg:#0b1e26;
+  --panel:#12323f;
+  --panel-hover:#1a3a4d;
+  --text:#e5f2f7;
+  --muted:#9fb9c5;
+  --off:#4b5d66;
+  --accent:#4fb8d6;
+}
+
+body {
+  background:var(--bg);
+  color:var(--text);
+  font-family:Arial, sans-serif;
+  padding:16px;
+  max-width:1200px;
+  margin:auto;
+}
+
+h2 { margin-bottom:12px; font-size:22px; }
+h3 {
+  margin:32px 0 12px;
+  font-size:20px;
+  color:var(--muted);
+}
+
+/* SELECT */
+#queue {
+  padding:12px 16px;
+  font-size:16px;
+  border-radius:10px;
+  border:none;
+  background:var(--panel);
+  color:var(--text);
+  cursor:pointer;
+}
+#queue:hover { background:var(--panel-hover); }
+
+/* TIMER */
+#next_event {
+  margin:24px auto;
+  padding:14px;
+  max-width:320px;
+  background:var(--panel);
+  border-radius:14px;
+  text-align:center;
+  color:var(--muted);
+}
+#next_event .numbers {
+  display:flex;
+  justify-content:center;
+  gap:14px;
+  margin-top:6px;
+}
+.number { font-size:28px; color:var(--accent); }
+.label { font-size:12px; }
+
+/* LEGEND */
+.legend {
+  display:flex;
+  gap:16px;
+  margin:16px 0;
+  flex-wrap:wrap;
+}
+.legend-item {
+  display:flex;
+  align-items:center;
+  gap:8px;
+  color:var(--muted);
+  font-size:14px;
+}
+.legend-box {
+  width:18px;
+  height:14px;
+  border-radius:4px;
+}
+.legend-on { background:var(--panel); }
+.legend-off { background:var(--off); }
+
+/* TIMELINE */
+.timeline {
+  display:grid;
+  grid-template-columns:repeat(24, 1fr);
+  gap:4px;
+}
+
+.hour {
+  height:42px;
+  background:var(--panel);
+  border-radius:6px;
+  position:relative;
+}
+.hour.off { background:var(--off); }
+
+.hour::after {
+  content:attr(data-hour);
+  position:absolute;
+  top:-20px;
+  left:50%;
+  transform:translateX(-50%);
+  font-size:11px;
+  color:var(--muted);
+}
+
+.now {
+  position:absolute;
+  bottom:6px;
+  left:50%;
+  transform:translateX(-50%);
+  width:8px;
+  height:8px;
+  background:var(--accent);
+  border-radius:50%;
+}
+
+/* 📱 MOBILE */
+@media (max-width:700px) {
+  .timeline {
+    grid-template-columns: repeat(auto-fit, minmax(44px, 1fr));
+    row-gap: 25px;      /* ← відступ між рядками */
+    column-gap: 6px;   /* ← акуратний відступ між клітинками */
+  }
+}
+
+@media (max-width:420px) {
+  h2 { font-size:20px; }
+  h3 { font-size:18px; }
+  .number { font-size:24px; }
+}
+</style>
+</head>
+
+<body>
+
+<h2>Олександрійський район — графік світла</h2>
+
+<select id="queue">
+  <option>1.1</option><option>1.2</option>
+  <option>2.1</option><option>2.2</option>
+  <option>3.1</option><option>3.2</option>
+  <option>4.1</option><option>4.2</option>
+  <option>5.1</option><option>5.2</option>
+  <option>6.1</option><option>6.2</option>
+</select>
+
+<div id="next_event"></div>
+
+<div class="legend">
+  <div class="legend-item"><div class="legend-box legend-on"></div>Світло є</div>
+  <div class="legend-item"><div class="legend-box legend-off"></div>Світла немає</div>
+</div>
+
+<h3>Сьогодні</h3>
+<br><br>
+<div class="timeline" id="timeline_today"></div>
+
+<h3 id="tomorrow_title" style="display:none">Завтра</h3>
+<br><br>
+<div class="timeline" id="timeline_tomorrow"></div>
+
+<script>
+const queue=document.getElementById("queue");
+const timeline_today=document.getElementById("timeline_today");
+const timeline_tomorrow=document.getElementById("timeline_tomorrow");
+const next_event=document.getElementById("next_event");
+
+let currentRanges=[];
+
+function draw(tl,ranges=[]){
+  tl.innerHTML="";
+  const now=new Date().getHours();
+  for(let h=0;h<24;h++){
+    const d=document.createElement("div");
+    d.className="hour";
+    d.dataset.hour=String(h).padStart(2,"0")+":00";
+    ranges.forEach(([s,e])=>{if(h>=s&&h<e)d.classList.add("off");});
+    if(tl===timeline_today&&h===now){
+      const dot=document.createElement("div");
+      dot.className="now";
+      d.appendChild(dot);
+    }
+    tl.appendChild(d);
+  }
+}
+
+function timer(){
+  if(!currentRanges.length) return;
+  const now=new Date();
+  const h=now.getHours();
+  let next=null,off=false;
+
+  for(const[r1,r2] of currentRanges){
+    if(h>=r1&&h<r2){next=r2;off=true;break;}
+    if(h<r1){next=r1;break;}
+  }
+  if(next===null){next_event.innerHTML="На сьогодні більше відключень немає";return;}
+
+  const t=new Date(); t.setHours(next,0,0,0);
+  let d=Math.max(0,(t-now)/1000|0);
+  const hh=String(d/3600|0).padStart(2,"0");
+  const mm=String(d%3600/60|0).padStart(2,"0");
+  const ss=String(d%60).padStart(2,"0");
+
+  next_event.innerHTML=`
+    <div>${off?"До <b style=\"color:#4FBF9A\">увімкнення</b> світла":"До <b style=\"color:#C76A6A\">вимкнення</b> світла"}</div>
+    <div class="numbers">
+      <div><div class="number">${hh}</div><div class="label">год</div></div>
+      <div><div class="number">${mm}</div><div class="label">хв</div></div>
+      <div><div class="number">${ss}</div><div class="label">сек</div></div>
+    </div>`;
+}
+
+async function update(){
+  let r=await fetch(`/api/schedule?queue=${queue.value}&date=today`);
+  let j=await r.json();
+  draw(timeline_today,j.ranges||[]);
+  currentRanges=j.ranges||[];
+
+  r=await fetch(`/api/schedule?queue=${queue.value}&date=tomorrow`);
+  j=await r.json();
+  if(j.ranges?.length){
+    draw(timeline_tomorrow,j.ranges);
+    tomorrow_title.style.display="block";
+  } else {
+    timeline_tomorrow.innerHTML="";
+    tomorrow_title.style.display="none";
+  }
+}
+
+queue.value=localStorage.getItem("lastQueue")||"1.1";
+update();
+setInterval(update,60000);
+setInterval(timer,1000);
+queue.onchange=()=>{localStorage.setItem("lastQueue",queue.value);update();}
+</script>
+
+</body>
+</html>
+
+
+
+
+
