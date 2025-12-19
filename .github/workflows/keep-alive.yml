@@ -11,4 +11,4 @@ jobs:
     steps:
       - name: Ping health endpoint
         run: |
-          curl -fsS https://alexlight-production.up.railway.app/health || echo "Ping failed"
+          curl -fsS https://alexlight.onrender.com || echo "Ping failed"
