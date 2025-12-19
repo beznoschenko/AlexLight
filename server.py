@@ -17,7 +17,7 @@ app = Quart(__name__)
 CACHE = {}
 CACHE_TIME = 120  # сек
 
-client = TelegramClient("user_session", API_ID, API_HASH)
+client = TelegramClient("render_user_session_v1", API_ID, API_HASH)
 
 async def start_client():
     if not client.is_connected():
@@ -105,4 +105,5 @@ async def schedule():
 # --- запуск ---
 if __name__ == "__main__":
     app.run(port=5000, debug=True)
+
 
